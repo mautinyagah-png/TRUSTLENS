@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRUSTLENS — See the Risk. Know Before You Trust.</title>
+  <meta name="description" content="TRUSTLENS is a personal digital security and scam-awareness platform that helps you identify warning signs in suspicious messages, links, job offers and investment opportunities." />
+  <meta name="theme-color" content="#101010" />
+
+  <link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg" />
+  <link rel="apple-touch-icon" href="assets/logo/mark.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+
+  <!-- Theme bootstrap: prevents a flash of the wrong theme before modules load -->
+  <script>
+    (function () {
+      try {
+        var pref = localStorage.getItem('tl_theme') || 'system';
+        var resolved = pref === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          : pref;
+        document.documentElement.setAttribute('data-theme', resolved);
+      } catch (e) { /* storage unavailable — dark stays */ }
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#view-root">Skip to main content</a>
+
+  <div class="app" id="app">
+    <div class="scrim" id="scrim" hidden></div>
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <div class="sidebar__brand">
+        <a class="brand" href="#/overview" data-route="overview" aria-label="TRUSTLENS home">
+          <img class="brand__mark" src="assets/logo/mark.svg" alt="" width="36" height="36" />
+          <span class="brand__text">
+            <span class="brand__name">TRUST<span>LENS</span></span>
+            <span class="brand__tag">See the Risk</span>
+          </span>
+        </a>
+        <button class="icon-btn sidebar__collapse" id="sidebarToggle" type="button"
+                aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar__nav" id="sidebarNav">
+        <p class="sidebar__label">Workspace</p>
+        <a class="nav-item" data-route="overview" href="#/overview">
+          <span class="nav-item__icon" data-icon="grid"></span><span class="nav-item__text">Overview</span>
+        </a>
+        <a class="nav-item" data-route="analyzer" href="#/analyzer">
+          <span class="nav-item__icon" data-icon="scan"></span><span class="nav-item__text">Scam Analyzer</span>
+        </a>
+        <a class="nav-item" data-route="inspector" href="#/inspector">
+          <span class="nav-item__icon" data-icon="link"></span><span class="nav-item__text">Link Inspector</span>
+        </a>
+        <a class="nav-item" data-route="journal" href="#/journal">
+          <span class="nav-item__icon" data-icon="book"></span><span class="nav-item__text">Security Journal</span>
+        </a>
+        <a class="nav-item" data-route="library" href="#/library">
+          <span class="nav-item__icon" data-icon="shield-check"></span><span class="nav-item__text">Threat Library</span>
+        </a>
+        <a class="nav-item" data-route="reports" href="#/reports">
+          <span class="nav-item__icon" data-icon="chart"></span><span class="nav-item__text">Reports &amp; Analytics</span>
+        </a>
+
+        <p class="sidebar__label">Support</p>
+        <a class="nav-item" data-route="settings" href="#/settings">
+          <span class="nav-item__icon" data-icon="settings"></span><span class="nav-item__text">Settings</span>
+        </a>
+        <a class="nav-item" data-route="help" href="#/help">
+          <span class="nav-item__icon" data-icon="help"></span><span class="nav-item__text">Help &amp; About</span>
+        </a>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="storage-meter" title="Local browser storage usage">
+          <div class="storage-meter__top">
+            <span class="storage-meter__label">Local storage</span>
+            <span class="storage-meter__value" id="storageValue">0 KB</span>
+          </div>
+          <div class="storage-meter__bar"><span id="storageBar" style="width:0%"></span></div>
+          <p class="storage-meter__hint">Stored only in this browser.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN ================= -->
+    <div class="app__main">
+      <header class="topbar">
+        <button class="icon-btn topbar__menu" id="menuBtn" type="button" aria-label="Open navigation">
+          <span data-icon="menu"></span>
+        </button>
+
+        <div class="topbar__titles">
+          <p class="topbar__eyebrow" id="pageEyebrow">Workspace</p>
+          <h1 class="topbar__title" id="pageTitle">Overview</h1>
+        </div>
+
+        <div class="topbar__actions">
+          <div class="search" id="searchWrap">
+            <span class="search__icon" data-icon="search"></span>
+            <input class="search__input" id="globalSearch" type="search" autocomplete="off"
+                   placeholder="Search investigations and threats…" aria-label="Search investigations and threats" />
+            <div class="search__panel" id="searchResults" hidden></div>
+          </div>
+
+          <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">
+            <span id="themeIcon"></span>
+          </button>
+
+          <button class="icon-btn icon-btn--badge" id="bellBtn" type="button"
+                  aria-label="Notifications" aria-haspopup="true" aria-expanded="false" title="Notifications">
+            <span data-icon="bell"></span>
+            <span class="badge-count" id="bellCount" hidden>0</span>
+          </button>
+
+          <button class="avatar-btn" id="profileBtn" type="button"
+                  aria-label="Profile menu" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar-btn__initials" id="avatarInitials">GA</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="view" id="view-root" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <!-- Popovers -->
+  <div class="popover popover--notifications" id="notificationPanel" hidden></div>
+  <div class="popover popover--profile" id="profileMenu" hidden></div>
+
+  <div id="modalRoot"></div>
+  <div class="toast-root" id="toastRoot" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
