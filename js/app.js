@@ -1,5 +1,6 @@
 /* =========================================================
    TRUSTLENS — Application shell, router, dashboard, help
+   v1.0.1 — single global nav handler, verified imports
    ========================================================= */
 
 import {
@@ -44,7 +45,7 @@ const TIPS = [
   'Urgency is a tool. If a message pressures you to act within minutes, it is usually trying to stop you from checking.',
   'No legitimate organisation will ever ask for your password or a one-time verification code.',
   'Gift cards, crypto transfers and wire transfers are favourites of fraudsters because they cannot be reversed.',
-  'Read the domain immediately before the final dot. “paypal.com.secure-login.xyz” belongs to secure-login.xyz, not PayPal.',
+  'Read the domain immediately before the final dot. "paypal.com.secure-login.xyz" belongs to secure-login.xyz, not PayPal.',
   'A small first payout is often bait. Scam platforms pay a little early to earn your trust before asking for a deposit.',
   'Verify job offers using a company website you type yourself — never a link supplied in the message.',
   'If an investment return is guaranteed, it is not an investment.',
@@ -64,12 +65,14 @@ function startTips(root) {
 
   let index = 0;
   dotsEl.innerHTML = TIPS.map((_, i) =>
-    `<button class="tip-dot ${i === 0 ? 'is-active' : ''}" type="button" data-tip="${i}"
-      aria-label="Show tip ${i + 1}"></button>`).join('');
+    '<button class="tip-dot ' + (i === 0 ? 'is-active' : '') + '" type="button" data-tip="' + i +
+    '" aria-label="Show tip ' + (i + 1) + '"></button>').join('');
 
   const renderTip = () => {
     textEl.textContent = TIPS[index];
-    dotsEl.querySelectorAll('.tip-dot').forEach((d, i) => d.classList.toggle('is-active', i === index));
+    dotsEl.querySelectorAll('.tip-dot').forEach((d, i) => {
+      d.classList.toggle('is-active', i === index);
+    });
   };
 
   dotsEl.addEventListener('click', (e) => {
@@ -89,7 +92,7 @@ function startTips(root) {
 }
 
 /* =========================================================
-   Overview dashboard
+   Overview
    ========================================================= */
 
 function renderOverview(root) {
@@ -101,15 +104,16 @@ function renderOverview(root) {
   const savedCount = saved.length;
   const linksInspected = history.filter((r) => r.type === 'link').length;
 
-  const recent = [...saved]
+  const recent = saved
+    .slice()
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 5);
 
   const dist = [
-    { key: 'low', label: 'Low', value: history.filter((r) => r.score < 25).length, color: RISK_COLORS.low },
-    { key: 'moderate', label: 'Moderate', value: history.filter((r) => r.score >= 25 && r.score < 50).length, color: RISK_COLORS.moderate },
-    { key: 'high', label: 'High', value: history.filter((r) => r.score >= 50 && r.score < 75).length, color: RISK_COLORS.high },
-    { key: 'critical', label: 'Critical', value: history.filter((r) => r.score >= 75).length, color: RISK_COLORS.critical }
+    { key: 'low',      label: 'Low',      value: history.filter((r) => r.score < 25).length,                              color: RISK_COLORS.low },
+    { key: 'moderate', label: 'Moderate', value: history.filter((r) => r.score >= 25 && r.score < 50).length,               color: RISK_COLORS.moderate },
+    { key: 'high',     label: 'High',     value: history.filter((r) => r.score >= 50 && r.score < 75).length,               color: RISK_COLORS.high },
+    { key: 'critical', label: 'Critical', value: history.filter((r) => r.score >= 75).length,                               color: RISK_COLORS.critical }
   ];
   const totalDist = dist.reduce((s, d) => s + d.value, 0);
 
@@ -146,30 +150,22 @@ function renderOverview(root) {
 
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-card__top">
-            <span class="stat-card__icon">${icon('activity', 19)}</span>
-          </div>
+          <div class="stat-card__top"><span class="stat-card__icon">${icon('activity', 19)}</span></div>
           <p class="stat-card__value">${totalChecks}</p>
           <p class="stat-card__label">Total Checks</p>
         </div>
         <div class="stat-card">
-          <div class="stat-card__top">
-            <span class="stat-card__icon stat-card__icon--danger">${icon('alert-triangle', 19)}</span>
-          </div>
+          <div class="stat-card__top"><span class="stat-card__icon stat-card__icon--danger">${icon('alert-triangle', 19)}</span></div>
           <p class="stat-card__value">${highRisk}</p>
           <p class="stat-card__label">High-Risk Findings</p>
         </div>
         <div class="stat-card">
-          <div class="stat-card__top">
-            <span class="stat-card__icon stat-card__icon--success">${icon('book', 19)}</span>
-          </div>
+          <div class="stat-card__top"><span class="stat-card__icon stat-card__icon--success">${icon('book', 19)}</span></div>
           <p class="stat-card__value">${savedCount}</p>
           <p class="stat-card__label">Saved Investigations</p>
         </div>
         <div class="stat-card">
-          <div class="stat-card__top">
-            <span class="stat-card__icon stat-card__icon--warning">${icon('link', 19)}</span>
-          </div>
+          <div class="stat-card__top"><span class="stat-card__icon stat-card__icon--warning">${icon('link', 19)}</span></div>
           <p class="stat-card__value">${linksInspected}</p>
           <p class="stat-card__label">Links Inspected</p>
         </div>
@@ -215,30 +211,22 @@ function renderOverview(root) {
             <button class="btn btn--ghost btn--sm" type="button" data-go="journal">View all</button>
           </div>
           ${recent.length === 0
-            ? `<div class="empty">
-                 <div class="empty__icon">${icon('book', 26)}</div>
-                 <p class="empty__title">No investigations yet</p>
-                 <p class="empty__desc">Run an analysis and save it to see it listed here.</p>
-                 <button class="btn btn--primary btn--sm" type="button" data-go="analyzer">${icon('scan', 15)} Analyze a message</button>
-               </div>`
-            : `<div class="activity-list">
-                 ${recent.map((r) => `
-                   <div class="activity-item">
-                     <div class="activity-item__icon">${icon(r.type === 'link' ? 'link' : 'message', 17)}</div>
-                     <div class="activity-item__main">
-                       <p class="activity-item__title">${escapeHtml(r.title)}</p>
-                       <p class="activity-item__meta">
-                         <span>${r.type === 'link' ? 'Link inspection' : 'Message analysis'}</span>
-                         <span>·</span>
-                         <span>${escapeHtml(timeAgo(r.createdAt))}</span>
-                       </p>
-                     </div>
-                     <div class="activity-item__right">
-                       <span class="chip chip--${r.riskKey}">${escapeHtml(r.riskLabel)}</span>
-                       <span class="activity-item__score">${r.score}</span>
-                     </div>
-                   </div>`).join('')}
-               </div>`}
+            ? '<div class="empty"><div class="empty__icon">' + icon('book', 26) + '</div>'
+              + '<p class="empty__title">No investigations yet</p>'
+              + '<p class="empty__desc">Run an analysis and save it to see it listed here.</p>'
+              + '<button class="btn btn--primary btn--sm" type="button" data-go="analyzer">' + icon('scan', 15) + ' Analyze a message</button></div>'
+            : '<div class="activity-list">' + recent.map((r) =>
+                '<div class="activity-item">'
+                + '<div class="activity-item__icon">' + icon(r.type === 'link' ? 'link' : 'message', 17) + '</div>'
+                + '<div class="activity-item__main">'
+                + '<p class="activity-item__title">' + escapeHtml(r.title) + '</p>'
+                + '<p class="activity-item__meta"><span>' + (r.type === 'link' ? 'Link inspection' : 'Message analysis') + '</span>'
+                + '<span>·</span><span>' + escapeHtml(timeAgo(r.createdAt)) + '</span></p>'
+                + '</div>'
+                + '<div class="activity-item__right">'
+                + '<span class="chip chip--' + r.riskKey + '">' + escapeHtml(r.riskLabel) + '</span>'
+                + '<span class="activity-item__score">' + r.score + '</span>'
+                + '</div></div>').join('') + '</div>'}
         </section>
 
         <section class="panel">
@@ -249,21 +237,14 @@ function renderOverview(root) {
             </div>
           </div>
           ${totalDist === 0
-            ? `<div class="empty" style="padding:34px 12px">
-                 <div class="empty__icon">${icon('chart', 24)}</div>
-                 <p class="empty__title">No data yet</p>
-                 <p class="empty__desc">Charts appear once you run an analysis or inspection.</p>
-               </div>`
-            : `<div class="dist-grid">
-                 ${donutSVG(dist, { size: 172, thickness: 20 })}
-                 <div class="legend">
-                   ${dist.map((d) => `<div class="legend__item">
-                     <span class="legend__dot" style="background:${d.color}"></span>
-                     <span class="legend__label">${d.label} risk</span>
-                     <span class="legend__value">${d.value}</span>
-                   </div>`).join('')}
-                 </div>
-               </div>`}
+            ? '<div class="empty" style="padding:34px 12px"><div class="empty__icon">' + icon('chart', 24) + '</div>'
+              + '<p class="empty__title">No data yet</p>'
+              + '<p class="empty__desc">Charts appear once you run an analysis or inspection.</p></div>'
+            : '<div class="dist-grid">' + donutSVG(dist, { size: 172, thickness: 20 })
+              + '<div class="legend">' + dist.map((d) =>
+                  '<div class="legend__item"><span class="legend__dot" style="background:' + d.color + '"></span>'
+                  + '<span class="legend__label">' + d.label + ' risk</span>'
+                  + '<span class="legend__value">' + d.value + '</span></div>').join('') + '</div></div>'}
         </section>
       </div>
 
@@ -278,13 +259,7 @@ function renderOverview(root) {
 
     </div>`;
 
-  root.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-go]');
-    if (btn) navigate(btn.dataset.go);
-  });
-
-  const stopTips = startTips(root);
-  return stopTips;
+  return startTips(root);
 }
 
 /* =========================================================
@@ -307,7 +282,7 @@ function renderHelp(root) {
               before you trust. Everything runs locally in your browser.
             </p>
             <div class="row row--wrap" style="margin-top:14px;gap:8px">
-              <span class="chip chip--accent">Version 1.0.0</span>
+              <span class="chip chip--accent">Version 1.0.1</span>
               <span class="chip chip--neutral">No backend</span>
               <span class="chip chip--neutral">LocalStorage only</span>
               <span class="chip chip--neutral">No tracking</span>
@@ -399,18 +374,18 @@ function renderHelp(root) {
 }
 
 /* =========================================================
-   Routing
+   Routes
    ========================================================= */
 
 const ROUTES = {
-  overview: { title: 'Overview', eyebrow: 'Workspace', render: renderOverview },
-  analyzer: { title: 'Scam Analyzer', eyebrow: 'Detection', render: renderAnalyzer },
-  inspector: { title: 'Link Inspector', eyebrow: 'Detection', render: renderLinkInspector },
-  journal: { title: 'Security Journal', eyebrow: 'Records', render: renderJournal },
-  library: { title: 'Threat Library', eyebrow: 'Learn', render: renderThreatLibrary },
-  reports: { title: 'Reports & Analytics', eyebrow: 'Insights', render: renderReports },
-  settings: { title: 'Settings', eyebrow: 'Support', render: renderSettings },
-  help: { title: 'Help & About', eyebrow: 'Support', render: renderHelp }
+  overview:  { title: 'Overview',            eyebrow: 'Workspace', render: renderOverview },
+  analyzer:  { title: 'Scam Analyzer',       eyebrow: 'Detection', render: renderAnalyzer },
+  inspector: { title: 'Link Inspector',      eyebrow: 'Detection', render: renderLinkInspector },
+  journal:   { title: 'Security Journal',    eyebrow: 'Records',   render: renderJournal },
+  library:   { title: 'Threat Library',      eyebrow: 'Learn',     render: renderThreatLibrary },
+  reports:   { title: 'Reports & Analytics', eyebrow: 'Insights',  render: renderReports },
+  settings:  { title: 'Settings',            eyebrow: 'Support',   render: renderSettings },
+  help:      { title: 'Help & About',        eyebrow: 'Support',   render: renderHelp }
 };
 
 let currentCleanup = null;
@@ -425,15 +400,16 @@ function renderRoute(name, params) {
   const key = ROUTES[name] ? name : 'overview';
   const route = ROUTES[key];
   const viewRoot = $('#view-root');
+  if (!viewRoot) return;
 
   if (typeof currentCleanup === 'function') {
-    try { currentCleanup(); } catch { /* noop */ }
+    try { currentCleanup(); } catch (e) { /* noop */ }
     currentCleanup = null;
   }
 
   $('#pageTitle').textContent = route.title;
   $('#pageEyebrow').textContent = route.eyebrow;
-  document.title = `${route.title} · TRUSTLENS`;
+  document.title = route.title + ' · TRUSTLENS';
 
   $$('#sidebarNav .nav-item').forEach((item) => {
     item.classList.toggle('is-active', item.dataset.route === key);
@@ -443,9 +419,7 @@ function renderRoute(name, params) {
   const cleanup = route.render(viewRoot, params);
   currentCleanup = typeof cleanup === 'function' ? cleanup : null;
 
-  viewRoot.scrollTop = 0;
   window.scrollTo({ top: 0, behavior: 'auto' });
-
   document.body.classList.remove('nav-open');
   updateScrim();
   updateStorageMeter();
@@ -455,7 +429,7 @@ function handleRoute() {
   const { name, params } = parseHash();
   if (!name) {
     const fallback = Storage.getSettings().defaultView || 'overview';
-    location.replace(`#/${ROUTES[fallback] ? fallback : 'overview'}`);
+    location.replace('#/' + (ROUTES[fallback] ? fallback : 'overview'));
     return;
   }
   renderRoute(name, params);
@@ -468,8 +442,7 @@ function handleRoute() {
 function updateScrim() {
   const scrim = $('#scrim');
   if (!scrim) return;
-  const open = document.body.classList.contains('nav-open');
-  scrim.hidden = !open;
+  scrim.hidden = !document.body.classList.contains('nav-open');
 }
 
 function updateStorageMeter() {
@@ -477,7 +450,7 @@ function updateStorageMeter() {
   const value = $('#storageValue');
   const bar = $('#storageBar');
   if (value) value.textContent = summary.label;
-  if (bar) bar.style.width = `${Math.max(1, summary.percent).toFixed(1)}%`;
+  if (bar) bar.style.width = Math.max(1, summary.percent).toFixed(1) + '%';
 }
 
 function updateAvatar() {
@@ -492,39 +465,43 @@ function initSidebar() {
   const savedCollapsed = localStorage.getItem('tl_sidebar_collapsed') === '1';
   if (savedCollapsed) document.body.classList.add('sidebar-collapsed');
 
-  toggle?.addEventListener('click', () => {
-    document.body.classList.toggle('sidebar-collapsed');
-    localStorage.setItem('tl_sidebar_collapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
-    toggle.setAttribute('aria-expanded', String(!document.body.classList.contains('sidebar-collapsed')));
-  });
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem('tl_sidebar_collapsed',
+        document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
+    });
+  }
 
-  $('#menuBtn')?.addEventListener('click', () => {
-    document.body.classList.toggle('nav-open');
-    updateScrim();
-  });
+  const menuBtn = $('#menuBtn');
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+      document.body.classList.toggle('nav-open');
+      updateScrim();
+    });
+  }
 
-  $('#scrim')?.addEventListener('click', () => {
-    document.body.classList.remove('nav-open');
-    updateScrim();
-  });
-
-  $('#sidebarNav')?.addEventListener('click', (e) => {
-    const item = e.target.closest('.nav-item');
-    if (!item) return;
-    document.body.classList.remove('nav-open');
-    updateScrim();
-  });
+  const scrim = $('#scrim');
+  if (scrim) {
+    scrim.addEventListener('click', () => {
+      document.body.classList.remove('nav-open');
+      updateScrim();
+    });
+  }
 }
 
 function initTheme() {
   applyTheme(Storage.getTheme());
-  $('#themeBtn')?.addEventListener('click', () => {
-    const resolved = document.documentElement.getAttribute('data-theme');
-    const next = resolved === 'dark' ? 'light' : 'dark';
-    Storage.setTheme(next);
-    applyTheme(next);
-    toast(`Switched to ${next} theme.`, 'success', 2000);
-  });
+  const btn = $('#themeBtn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const resolved = document.documentElement.getAttribute('data-theme');
+      const next = resolved === 'dark' ? 'light' : 'dark';
+      Storage.setTheme(next);
+      applyTheme(next);
+      toast('Switched to ' + next + ' theme.', 'success', 2000);
+    });
+  }
   window.addEventListener('tl:theme-changed', (e) => applyTheme(e.detail || Storage.getTheme()));
 }
 
@@ -535,15 +512,15 @@ function initProfileMenu() {
 
   const render = () => {
     const profile = Storage.getProfile();
-    menu.innerHTML = `
-      <div class="profile-menu__head">
-        <p class="profile-menu__name">${escapeHtml(profile.name)}</p>
-        <p class="profile-menu__sub">Local profile · not verified</p>
-      </div>
-      <button class="menu-item" type="button" data-act="settings">${icon('settings', 16)} Settings</button>
-      <button class="menu-item" type="button" data-act="export">${icon('download', 16)} Export all data</button>
-      <button class="menu-item" type="button" data-act="library">${icon('shield-check', 16)} Threat Library</button>
-      <button class="menu-item" type="button" data-act="help">${icon('help', 16)} Help &amp; About</button>`;
+    menu.innerHTML =
+      '<div class="profile-menu__head">'
+      + '<p class="profile-menu__name">' + escapeHtml(profile.name) + '</p>'
+      + '<p class="profile-menu__sub">Local profile · not verified</p>'
+      + '</div>'
+      + '<button class="menu-item" type="button" data-act="settings">' + icon('settings', 16) + ' Settings</button>'
+      + '<button class="menu-item" type="button" data-act="export">'   + icon('download', 16) + ' Export all data</button>'
+      + '<button class="menu-item" type="button" data-act="library">'  + icon('shield-check', 16) + ' Threat Library</button>'
+      + '<button class="menu-item" type="button" data-act="help">'     + icon('help', 16) + ' Help &amp; About</button>';
   };
 
   const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
@@ -561,11 +538,11 @@ function initProfileMenu() {
     if (!item) return;
     close();
     const act = item.dataset.act;
-    if (act === 'settings') navigate('settings');
-    else if (act === 'library') navigate('library');
-    else if (act === 'help') navigate('help');
+    if (act === 'settings')      navigate('settings');
+    else if (act === 'library')  navigate('library');
+    else if (act === 'help')     navigate('help');
     else if (act === 'export') {
-      downloadFile(`trustlens-backup-${Date.now()}.json`, JSON.stringify(Storage.exportAll(), null, 2));
+      downloadFile('trustlens-backup-' + Date.now() + '.json', JSON.stringify(Storage.exportAll(), null, 2));
       Storage.addNotification('Full application backup exported.', 'success');
       toast('Backup exported.', 'success');
     }
@@ -578,7 +555,6 @@ function initProfileMenu() {
   });
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-
   window.addEventListener('tl:profile-changed', () => { updateAvatar(); render(); });
 }
 
@@ -600,24 +576,29 @@ function initSearch() {
       t.title.toLowerCase().includes(q) || t.summary.toLowerCase().includes(q)).slice(0, 4);
 
     if (!records.length && !threats.length) {
-      panel.innerHTML = `<p class="search-empty">No results for “${escapeHtml(input.value)}”</p>`;
+      panel.innerHTML = '<p class="search-empty">No results for "' + escapeHtml(input.value) + '"</p>';
       panel.hidden = false;
       return;
     }
 
-    panel.innerHTML = `
-      ${records.length ? `<p class="search-group__label">Investigations</p>
-        ${records.map((r) => `<button class="search-result" type="button" data-type="record" data-id="${escapeHtml(r.id)}">
-          ${icon(r.type === 'link' ? 'link' : 'message', 15)}
-          <span class="search-result__title">${escapeHtml(r.title)}</span>
-          <span class="search-result__meta">${r.score}</span>
-        </button>`).join('')}` : ''}
-      ${threats.length ? `<p class="search-group__label">Threat library</p>
-        ${threats.map((t) => `<button class="search-result" type="button" data-type="threat" data-id="${escapeHtml(t.id)}">
-          ${icon(t.icon, 15)}
-          <span class="search-result__title">${escapeHtml(t.title)}</span>
-          <span class="search-result__meta">${icon('arrow-right', 13)}</span>
-        </button>`).join('')}` : ''}`;
+    let html = '';
+    if (records.length) {
+      html += '<p class="search-group__label">Investigations</p>';
+      html += records.map((r) =>
+        '<button class="search-result" type="button" data-type="record" data-id="' + escapeHtml(r.id) + '">'
+        + icon(r.type === 'link' ? 'link' : 'message', 15)
+        + '<span class="search-result__title">' + escapeHtml(r.title) + '</span>'
+        + '<span class="search-result__meta">' + r.score + '</span></button>').join('');
+    }
+    if (threats.length) {
+      html += '<p class="search-group__label">Threat library</p>';
+      html += threats.map((t) =>
+        '<button class="search-result" type="button" data-type="threat" data-id="' + escapeHtml(t.id) + '">'
+        + icon(t.icon, 15)
+        + '<span class="search-result__title">' + escapeHtml(t.title) + '</span>'
+        + '<span class="search-result__meta">' + icon('arrow-right', 13) + '</span></button>').join('');
+    }
+    panel.innerHTML = html;
     panel.hidden = false;
   };
 
@@ -635,7 +616,8 @@ function initSearch() {
   panel.addEventListener('click', (e) => {
     const btn = e.target.closest('.search-result');
     if (!btn) return;
-    const { type, id } = btn.dataset;
+    const type = btn.dataset.type;
+    const id = btn.dataset.id;
     close();
     input.value = '';
     if (type === 'record') navigate('journal', [id]);
@@ -652,6 +634,33 @@ function initSearch() {
 }
 
 /* =========================================================
+   GLOBAL CLICK HANDLER — this is what makes every button work
+   ========================================================= */
+
+function initGlobalNavigation() {
+  document.addEventListener('click', (e) => {
+    /* Sidebar <a data-route="..."> links */
+    const routeLink = e.target.closest('a[data-route]');
+    if (routeLink) {
+      e.preventDefault();
+      navigate(routeLink.dataset.route);
+      document.body.classList.remove('nav-open');
+      updateScrim();
+      return;
+    }
+
+    /* Any [data-go] button anywhere in the app */
+    const goBtn = e.target.closest('[data-go]');
+    if (goBtn) {
+      e.preventDefault();
+      navigate(goBtn.dataset.go);
+      document.body.classList.remove('nav-open');
+      updateScrim();
+    }
+  });
+}
+
+/* =========================================================
    Bootstrap
    ========================================================= */
 
@@ -662,6 +671,7 @@ function boot() {
   initProfileMenu();
   initSearch();
   initNotifications();
+  initGlobalNavigation();          /* ← single global nav handler */
   updateAvatar();
   updateStorageMeter();
 
@@ -673,6 +683,8 @@ function boot() {
   window.addEventListener('tl:profile-changed', updateAvatar);
 
   handleRoute();
+
+  console.log('[TRUSTLENS] v1.0.1 ready — ' + Object.keys(ROUTES).length + ' routes loaded');
 }
 
 if (document.readyState === 'loading') {
