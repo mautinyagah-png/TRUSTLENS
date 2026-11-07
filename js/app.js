@@ -1,6 +1,6 @@
 /* =========================================================
    TRUSTLENS — Application shell, router, dashboard, help
-   v1.0.1 — single global nav handler, verified imports
+   v1.0.2 — adds Reputation Check, removes storage widget
    ========================================================= */
 
 import {
@@ -11,6 +11,7 @@ import * as Storage from './storage.js';
 import { initNotifications, refreshNotifications } from './notifications.js';
 import { renderAnalyzer } from './analyzer.js';
 import { renderLinkInspector } from './link-inspector.js';
+import { renderReputationCheck } from './reputation-check.js';
 import { renderJournal, openRecord } from './journal.js';
 import { renderThreatLibrary, openThreat, LIBRARY } from './threat-library.js';
 import { renderReports } from './reports.js';
@@ -70,9 +71,7 @@ function startTips(root) {
 
   const renderTip = () => {
     textEl.textContent = TIPS[index];
-    dotsEl.querySelectorAll('.tip-dot').forEach((d, i) => {
-      d.classList.toggle('is-active', i === index);
-    });
+    dotsEl.querySelectorAll('.tip-dot').forEach((d, i) => d.classList.toggle('is-active', i === index));
   };
 
   dotsEl.addEventListener('click', (e) => {
@@ -83,6 +82,7 @@ function startTips(root) {
   });
 
   renderTip();
+  if (tipTimer) clearInterval(tipTimer);
   tipTimer = setInterval(() => {
     index = (index + 1) % TIPS.length;
     renderTip();
@@ -110,10 +110,10 @@ function renderOverview(root) {
     .slice(0, 5);
 
   const dist = [
-    { key: 'low',      label: 'Low',      value: history.filter((r) => r.score < 25).length,                              color: RISK_COLORS.low },
-    { key: 'moderate', label: 'Moderate', value: history.filter((r) => r.score >= 25 && r.score < 50).length,               color: RISK_COLORS.moderate },
-    { key: 'high',     label: 'High',     value: history.filter((r) => r.score >= 50 && r.score < 75).length,               color: RISK_COLORS.high },
-    { key: 'critical', label: 'Critical', value: history.filter((r) => r.score >= 75).length,                               color: RISK_COLORS.critical }
+    { key: 'low',      label: 'Low',      value: history.filter((r) => r.score < 25).length,                    color: RISK_COLORS.low },
+    { key: 'moderate', label: 'Moderate', value: history.filter((r) => r.score >= 25 && r.score < 50).length,     color: RISK_COLORS.moderate },
+    { key: 'high',     label: 'High',     value: history.filter((r) => r.score >= 50 && r.score < 75).length,     color: RISK_COLORS.high },
+    { key: 'critical', label: 'Critical', value: history.filter((r) => r.score >= 75).length,                     color: RISK_COLORS.critical }
   ];
   const totalDist = dist.reduce((s, d) => s + d.value, 0);
 
@@ -132,18 +132,18 @@ function renderOverview(root) {
           <circle cx="120" cy="120" r="64" stroke="rgba(249,115,22,.4)" stroke-width="1"/>
           <path d="M120 40 L182 66 V122 C182 164 154 190 120 204 C86 190 58 164 58 122 V66 Z"
                 fill="url(#heroShield)" opacity="0.22" stroke="#FDBA74" stroke-width="2"/>
-          <path d="M120 74 L164 92 V124 C164 152 145 170 120 180 C95 170 76 152 76 124 V92 Z"
-                fill="none" stroke="#FDBA74" stroke-width="1.6" opacity="0.7"/>
-          <circle cx="120" cy="124" r="26" stroke="#FDBA74" stroke-width="2"/>
-          <circle cx="120" cy="124" r="11" fill="#FB923C"/>
+          <circle cx="120" cy="124" r="26" stroke="#FDBA74" stroke-width="2" fill="none"/>
+          <rect x="118" y="110" width="4" height="14" rx="2" fill="#DC2626"/>
+          <circle cx="120" cy="132" r="2.5" fill="#DC2626"/>
+          <line x1="138" y1="142" x2="154" y2="158" stroke="#FDBA74" stroke-width="3" stroke-linecap="round"/>
         </svg>
         <div class="hero__inner">
           <span class="hero__eyebrow">${icon('shield-check', 13)} Personal scam awareness</span>
           <h2 class="hero__title">Your digital safety <span>starts here.</span></h2>
-          <p class="hero__desc">Analyze suspicious messages, inspect questionable links and stay informed about digital threats.</p>
+          <p class="hero__desc">Analyze suspicious messages, inspect questionable links, check a brand's reputation and stay informed about digital threats.</p>
           <div class="hero__actions">
             <button class="btn btn--primary" type="button" data-go="analyzer">${icon('scan', 16)} Analyze a Message</button>
-            <button class="btn btn--outline" type="button" data-go="inspector">${icon('link', 16)} Inspect a Link</button>
+            <button class="btn btn--outline" type="button" data-go="reputation">${icon('globe', 16)} Check a Brand</button>
           </div>
         </div>
       </section>
@@ -180,11 +180,11 @@ function renderOverview(root) {
             <span class="qa-card__desc">Check a job offer, investment pitch or payment request for warning signs.</span>
             <span class="qa-card__arrow">Open analyzer ${icon('arrow-right', 14)}</span>
           </button>
-          <button class="qa-card" type="button" data-go="inspector">
-            <span class="qa-card__icon">${icon('link', 20)}</span>
-            <span class="qa-card__title">Inspect Link</span>
-            <span class="qa-card__desc">Examine a URL for deceptive structure, encoding and domain tricks.</span>
-            <span class="qa-card__arrow">Open inspector ${icon('arrow-right', 14)}</span>
+          <button class="qa-card" type="button" data-go="reputation">
+            <span class="qa-card__icon">${icon('globe', 20)}</span>
+            <span class="qa-card__title">Reputation Check</span>
+            <span class="qa-card__desc">Look up a company, brand or website against our curated database.</span>
+            <span class="qa-card__arrow">Open checker ${icon('arrow-right', 14)}</span>
           </button>
           <button class="qa-card" type="button" data-go="journal">
             <span class="qa-card__icon">${icon('book', 20)}</span>
@@ -221,12 +221,10 @@ function renderOverview(root) {
                 + '<div class="activity-item__main">'
                 + '<p class="activity-item__title">' + escapeHtml(r.title) + '</p>'
                 + '<p class="activity-item__meta"><span>' + (r.type === 'link' ? 'Link inspection' : 'Message analysis') + '</span>'
-                + '<span>·</span><span>' + escapeHtml(timeAgo(r.createdAt)) + '</span></p>'
-                + '</div>'
+                + '<span>·</span><span>' + escapeHtml(timeAgo(r.createdAt)) + '</span></p></div>'
                 + '<div class="activity-item__right">'
                 + '<span class="chip chip--' + r.riskKey + '">' + escapeHtml(r.riskLabel) + '</span>'
-                + '<span class="activity-item__score">' + r.score + '</span>'
-                + '</div></div>').join('') + '</div>'}
+                + '<span class="activity-item__score">' + r.score + '</span></div></div>').join('') + '</div>'}
         </section>
 
         <section class="panel">
@@ -239,7 +237,7 @@ function renderOverview(root) {
           ${totalDist === 0
             ? '<div class="empty" style="padding:34px 12px"><div class="empty__icon">' + icon('chart', 24) + '</div>'
               + '<p class="empty__title">No data yet</p>'
-              + '<p class="empty__desc">Charts appear once you run an analysis or inspection.</p></div>'
+              + '<p class="empty__desc">Charts appear once you run an analysis.</p></div>'
             : '<div class="dist-grid">' + donutSVG(dist, { size: 172, thickness: 20 })
               + '<div class="legend">' + dist.map((d) =>
                   '<div class="legend__item"><span class="legend__dot" style="background:' + d.color + '"></span>'
@@ -263,13 +261,12 @@ function renderOverview(root) {
 }
 
 /* =========================================================
-   Help & About
+   Help
    ========================================================= */
 
 function renderHelp(root) {
   root.innerHTML = `
     <div class="stack">
-
       <section class="panel">
         <div class="row row--top row--wrap" style="gap:20px">
           <img src="assets/logo/mark.svg" alt="TRUSTLENS logo" width="64" height="64"
@@ -278,11 +275,11 @@ function renderHelp(root) {
             <h2 class="panel__title" style="font-size:20px">TRUSTLENS</h2>
             <p class="muted" style="font-size:13.5px;margin-top:6px;max-width:70ch;line-height:1.7">
               A personal digital security and scam-awareness platform. TRUSTLENS examines suspicious
-              messages and links against a library of known fraud patterns so you can see the risk
-              before you trust. Everything runs locally in your browser.
+              messages, links and brand names against a library of known fraud patterns so you can
+              see the risk before you trust. Everything runs locally in your browser.
             </p>
             <div class="row row--wrap" style="margin-top:14px;gap:8px">
-              <span class="chip chip--accent">Version 1.0.1</span>
+              <span class="chip chip--accent">Version 1.0.2</span>
               <span class="chip chip--neutral">No backend</span>
               <span class="chip chip--neutral">LocalStorage only</span>
               <span class="chip chip--neutral">No tracking</span>
@@ -294,21 +291,34 @@ function renderHelp(root) {
       <details class="help-section" open>
         <summary>What TRUSTLENS does</summary>
         <div class="help-section__body">
-          <p>TRUSTLENS gives you a structured second opinion before you act on a suspicious message or link. It has three core jobs:</p>
+          <p>TRUSTLENS gives you a structured second opinion before you act on a suspicious message, link or brand name. Four tools:</p>
           <ul>
             <li><strong>Scam Analyzer</strong> — reads pasted text and scores it against 14 weighted scam indicators.</li>
             <li><strong>Link Inspector</strong> — analyses the structure of a URL for deception patterns.</li>
+            <li><strong>Reputation Check</strong> — looks up a brand, company or URL against a curated database of known legitimate brands and known scam patterns.</li>
             <li><strong>Security Journal</strong> — stores the investigations you choose to save, with your own notes.</li>
           </ul>
-          <p>It also includes an educational Threat Library and a Reports dashboard built entirely from your stored records.</p>
+        </div>
+      </details>
+
+      <details class="help-section">
+        <summary>How to use Reputation Check</summary>
+        <div class="help-section__body">
+          <p>Type a brand name (e.g. <em>uber eats</em>) or a full URL (e.g. <em>ubereats.com</em>) and press Check. TRUSTLENS returns one of four verdicts:</p>
+          <ul>
+            <li><strong>Known legitimate brand</strong> — the brand is in our curated list of real companies.</li>
+            <li><strong>Known scam pattern</strong> — the query matches a documented scam template.</li>
+            <li><strong>Possible impersonation</strong> — a URL contains a brand name but is not on the brand's official domain.</li>
+            <li><strong>Unknown</strong> — not in our database. Verify independently.</li>
+          </ul>
+          <p><strong>This is a curated offline database, not a live verification service.</strong> It covers common brands and scams but cannot check every website. Always confirm through official channels before sending money or data.</p>
         </div>
       </details>
 
       <details class="help-section">
         <summary>How to use the Scam Analyzer</summary>
         <div class="help-section__body">
-          <p>Paste the full message — including any greeting, links and contact details — into the textarea, then select <strong>Analyze Message</strong>. The rule engine checks for indicators such as guaranteed income, upfront payment requests, urgency, OTP requests and off-platform pressure.</p>
-          <p>Each detected indicator shows its severity, score contribution, an explanation and a recommended precaution. You can then copy the results or save the investigation to your journal.</p>
+          <p>Paste the full message into the textarea and select Analyze. The rule engine checks for indicators such as guaranteed income, upfront payment requests, urgency, OTP requests and off-platform pressure.</p>
           <p>If no indicators are found, the message is <em>not</em> proven safe — it simply contains none of the patterns TRUSTLENS knows about.</p>
         </div>
       </details>
@@ -316,45 +326,27 @@ function renderHelp(root) {
       <details class="help-section">
         <summary>How to use the Link Inspector</summary>
         <div class="help-section__body">
-          <p>Enter a URL and select <strong>Inspect Link</strong>. TRUSTLENS parses the address with the browser's URL parser and looks for structural warnings: plain HTTP, raw IP addresses, deep subdomain chains, punycode, embedded credentials, URL shorteners, high-abuse domain suffixes, brand impersonation and unusual encoding.</p>
-          <p><strong>TRUSTLENS never opens the link.</strong> It does not contact Google Safe Browsing, VirusTotal, DNS reputation services, SSL validators or malware databases. A clean result means only that the address structure looked unremarkable.</p>
+          <p>Enter a URL and select Inspect. TRUSTLENS parses the address and looks for structural warnings: plain HTTP, raw IP addresses, deep subdomain chains, punycode, embedded credentials, URL shorteners, high-abuse domain suffixes, brand impersonation and unusual encoding.</p>
+          <p><strong>TRUSTLENS never opens the link.</strong></p>
         </div>
       </details>
 
       <details class="help-section">
         <summary>How risk scores work</summary>
         <div class="help-section__body">
-          <p>Every detected indicator carries a weight. The weights are summed, a small bonus is added when several different categories appear together, and the total is capped at 100.</p>
           <ul>
             <li><strong>0 – 24</strong> · Low risk</li>
             <li><strong>25 – 49</strong> · Moderate risk</li>
             <li><strong>50 – 74</strong> · High risk</li>
             <li><strong>75 – 100</strong> · Critical risk</li>
           </ul>
-          <p>A single ordinary keyword will not push a message into a high band — context and multiple indicators are required.</p>
-        </div>
-      </details>
-
-      <details class="help-section">
-        <summary>How investigations are saved</summary>
-        <div class="help-section__body">
-          <p>Every analysis is recorded locally so the dashboard statistics stay accurate. Only records you explicitly save appear in the Security Journal. You can add personal notes, edit them, delete individual records or clear everything from Settings.</p>
-        </div>
-      </details>
-
-      <details class="help-section">
-        <summary>Exporting and importing backups</summary>
-        <div class="help-section__body">
-          <p>Settings → <strong>Export all data</strong> downloads a JSON backup containing your settings, profile, investigation history and notifications. <strong>Import backup</strong> merges a previous backup without overwriting any existing records — duplicates are skipped.</p>
-          <p>The Security Journal also has its own export for saved investigations only, and Reports can export an analytics snapshot.</p>
         </div>
       </details>
 
       <details class="help-section">
         <summary>Privacy</summary>
         <div class="help-section__body">
-          <p>TRUSTLENS has no backend, no analytics and no third-party tracking. Nothing you type is transmitted anywhere. All data is written to this browser's LocalStorage on this device.</p>
-          <p>Because of that, records are not synchronised between devices and disappear if you clear browser data or use private browsing. Export a backup if the records matter to you.</p>
+          <p>TRUSTLENS has no backend, no analytics and no third-party tracking. Nothing you type is transmitted anywhere. All data stays in this browser.</p>
         </div>
       </details>
 
@@ -362,7 +354,7 @@ function renderHelp(root) {
         <summary>Limitations and disclaimer</summary>
         <div class="help-section__body">
           <p>TRUSTLENS is a pattern-matching awareness tool, not a security product or a verification service. It cannot confirm that a person, company, website or opportunity is fraudulent, and it cannot confirm that they are legitimate either.</p>
-          <p>Scores reflect only the rules built into this version. A low score is not a guarantee of safety. Always verify through independent, official channels before sending money or personal information.</p>
+          <p>Scores reflect only the rules built into this version. A low score is not a guarantee of safety.</p>
         </div>
       </details>
 
@@ -378,14 +370,15 @@ function renderHelp(root) {
    ========================================================= */
 
 const ROUTES = {
-  overview:  { title: 'Overview',            eyebrow: 'Workspace', render: renderOverview },
-  analyzer:  { title: 'Scam Analyzer',       eyebrow: 'Detection', render: renderAnalyzer },
-  inspector: { title: 'Link Inspector',      eyebrow: 'Detection', render: renderLinkInspector },
-  journal:   { title: 'Security Journal',    eyebrow: 'Records',   render: renderJournal },
-  library:   { title: 'Threat Library',      eyebrow: 'Learn',     render: renderThreatLibrary },
-  reports:   { title: 'Reports & Analytics', eyebrow: 'Insights',  render: renderReports },
-  settings:  { title: 'Settings',            eyebrow: 'Support',   render: renderSettings },
-  help:      { title: 'Help & About',        eyebrow: 'Support',   render: renderHelp }
+  overview:   { title: 'Overview',            eyebrow: 'Workspace', render: renderOverview },
+  analyzer:   { title: 'Scam Analyzer',       eyebrow: 'Detection', render: renderAnalyzer },
+  inspector:  { title: 'Link Inspector',      eyebrow: 'Detection', render: renderLinkInspector },
+  reputation: { title: 'Reputation Check',    eyebrow: 'Detection', render: renderReputationCheck },
+  journal:    { title: 'Security Journal',    eyebrow: 'Records',   render: renderJournal },
+  library:    { title: 'Threat Library',      eyebrow: 'Learn',     render: renderThreatLibrary },
+  reports:    { title: 'Reports & Analytics', eyebrow: 'Insights',  render: renderReports },
+  settings:   { title: 'Settings',            eyebrow: 'Support',   render: renderSettings },
+  help:       { title: 'Help & About',        eyebrow: 'Support',   render: renderHelp }
 };
 
 let currentCleanup = null;
@@ -422,7 +415,6 @@ function renderRoute(name, params) {
   window.scrollTo({ top: 0, behavior: 'auto' });
   document.body.classList.remove('nav-open');
   updateScrim();
-  updateStorageMeter();
 }
 
 function handleRoute() {
@@ -443,14 +435,6 @@ function updateScrim() {
   const scrim = $('#scrim');
   if (!scrim) return;
   scrim.hidden = !document.body.classList.contains('nav-open');
-}
-
-function updateStorageMeter() {
-  const summary = Storage.storageSummary();
-  const value = $('#storageValue');
-  const bar = $('#storageBar');
-  if (value) value.textContent = summary.label;
-  if (bar) bar.style.width = Math.max(1, summary.percent).toFixed(1) + '%';
 }
 
 function updateAvatar() {
@@ -515,10 +499,9 @@ function initProfileMenu() {
     menu.innerHTML =
       '<div class="profile-menu__head">'
       + '<p class="profile-menu__name">' + escapeHtml(profile.name) + '</p>'
-      + '<p class="profile-menu__sub">Local profile · not verified</p>'
-      + '</div>'
+      + '<p class="profile-menu__sub">Local profile · not verified</p></div>'
       + '<button class="menu-item" type="button" data-act="settings">' + icon('settings', 16) + ' Settings</button>'
-      + '<button class="menu-item" type="button" data-act="export">'   + icon('download', 16) + ' Export all data</button>'
+      + '<button class="menu-item" type="button" data-act="export">'   + icon('download', 16) + ' Export data</button>'
       + '<button class="menu-item" type="button" data-act="library">'  + icon('shield-check', 16) + ' Threat Library</button>'
       + '<button class="menu-item" type="button" data-act="help">'     + icon('help', 16) + ' Help &amp; About</button>';
   };
@@ -538,12 +521,12 @@ function initProfileMenu() {
     if (!item) return;
     close();
     const act = item.dataset.act;
-    if (act === 'settings')      navigate('settings');
-    else if (act === 'library')  navigate('library');
-    else if (act === 'help')     navigate('help');
+    if (act === 'settings')     navigate('settings');
+    else if (act === 'library') navigate('library');
+    else if (act === 'help')    navigate('help');
     else if (act === 'export') {
       downloadFile('trustlens-backup-' + Date.now() + '.json', JSON.stringify(Storage.exportAll(), null, 2));
-      Storage.addNotification('Full application backup exported.', 'success');
+      Storage.addNotification('Backup exported.', 'success');
       toast('Backup exported.', 'success');
     }
   });
@@ -553,7 +536,6 @@ function initProfileMenu() {
     if (menu.contains(e.target) || btn.contains(e.target)) return;
     close();
   });
-
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
   window.addEventListener('tl:profile-changed', () => { updateAvatar(); render(); });
 }
@@ -604,7 +586,6 @@ function initSearch() {
 
   input.addEventListener('input', debounce(run, 180));
   input.addEventListener('focus', () => { if (input.value.trim()) run(); });
-
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { input.value = ''; close(); input.blur(); }
     if (e.key === 'Enter') {
@@ -629,17 +610,15 @@ function initSearch() {
     if (panel.contains(e.target) || input.contains(e.target)) return;
     close();
   });
-
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 }
 
 /* =========================================================
-   GLOBAL CLICK HANDLER — this is what makes every button work
+   Global navigation — the ONE handler that wires every button
    ========================================================= */
 
 function initGlobalNavigation() {
   document.addEventListener('click', (e) => {
-    /* Sidebar <a data-route="..."> links */
     const routeLink = e.target.closest('a[data-route]');
     if (routeLink) {
       e.preventDefault();
@@ -648,8 +627,6 @@ function initGlobalNavigation() {
       updateScrim();
       return;
     }
-
-    /* Any [data-go] button anywhere in the app */
     const goBtn = e.target.closest('[data-go]');
     if (goBtn) {
       e.preventDefault();
@@ -671,20 +648,16 @@ function boot() {
   initProfileMenu();
   initSearch();
   initNotifications();
-  initGlobalNavigation();          /* ← single global nav handler */
+  initGlobalNavigation();
   updateAvatar();
-  updateStorageMeter();
 
   window.addEventListener('hashchange', handleRoute);
-  window.addEventListener('tl:history-changed', () => {
-    updateStorageMeter();
-    refreshNotifications();
-  });
+  window.addEventListener('tl:history-changed', refreshNotifications);
   window.addEventListener('tl:profile-changed', updateAvatar);
 
   handleRoute();
 
-  console.log('[TRUSTLENS] v1.0.1 ready — ' + Object.keys(ROUTES).length + ' routes loaded');
+  console.log('[TRUSTLENS] v1.0.2 ready — ' + Object.keys(ROUTES).length + ' routes loaded');
 }
 
 if (document.readyState === 'loading') {
