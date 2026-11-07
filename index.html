@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TRUSTLENS — See the Risk. Know Before You Trust.</title>
-  <meta name="description" content="TRUSTLENS is a personal digital security and scam-awareness platform that helps you identify warning signs in suspicious messages, links, job offers and investment opportunities." />
+  <meta name="description" content="TRUSTLENS helps you spot warning signs in suspicious messages, links, job offers and brand names before you trust them." />
   <meta name="theme-color" content="#101010" />
 
   <link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg" />
@@ -19,7 +19,6 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 
-  <!-- Theme bootstrap: prevents a flash of the wrong theme before modules load -->
   <script>
     (function () {
       try {
@@ -38,7 +37,6 @@
   <div class="app" id="app">
     <div class="scrim" id="scrim" hidden></div>
 
-    <!-- ================= SIDEBAR ================= -->
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
       <div class="sidebar__brand">
         <a class="brand" href="#/overview" data-route="overview" aria-label="TRUSTLENS home">
@@ -68,6 +66,9 @@
         <a class="nav-item" data-route="inspector" href="#/inspector">
           <span class="nav-item__icon" data-icon="link"></span><span class="nav-item__text">Link Inspector</span>
         </a>
+        <a class="nav-item" data-route="reputation" href="#/reputation">
+          <span class="nav-item__icon" data-icon="globe"></span><span class="nav-item__text">Reputation Check</span>
+        </a>
         <a class="nav-item" data-route="journal" href="#/journal">
           <span class="nav-item__icon" data-icon="book"></span><span class="nav-item__text">Security Journal</span>
         </a>
@@ -86,20 +87,8 @@
           <span class="nav-item__icon" data-icon="help"></span><span class="nav-item__text">Help &amp; About</span>
         </a>
       </nav>
-
-      <div class="sidebar__footer">
-        <div class="storage-meter" title="Local browser storage usage">
-          <div class="storage-meter__top">
-            <span class="storage-meter__label">Local storage</span>
-            <span class="storage-meter__value" id="storageValue">0 KB</span>
-          </div>
-          <div class="storage-meter__bar"><span id="storageBar" style="width:0%"></span></div>
-          <p class="storage-meter__hint">Stored only in this browser.</p>
-        </div>
-      </div>
     </aside>
 
-    <!-- ================= MAIN ================= -->
     <div class="app__main">
       <header class="topbar">
         <button class="icon-btn topbar__menu" id="menuBtn" type="button" aria-label="Open navigation">
@@ -131,7 +120,7 @@
 
           <button class="avatar-btn" id="profileBtn" type="button"
                   aria-label="Profile menu" aria-haspopup="true" aria-expanded="false">
-            <span class="avatar-btn__initials" id="avatarInitials">GA</span>
+            <span class="avatar-btn__initials" id="avatarInitials">TL</span>
           </button>
         </div>
       </header>
@@ -140,7 +129,6 @@
     </div>
   </div>
 
-  <!-- Popovers -->
   <div class="popover popover--notifications" id="notificationPanel" hidden></div>
   <div class="popover popover--profile" id="profileMenu" hidden></div>
 
